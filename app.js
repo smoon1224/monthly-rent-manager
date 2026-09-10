@@ -43,7 +43,6 @@ const elements = {
     btnToggleDetail: document.getElementById('btnToggleDetail'),
     detailIcon: document.getElementById('detailIcon'),
     detailLabel: document.getElementById('detailLabel'),
-    btnAddRoom: document.getElementById('btnAddRoom'),
     btnExportJson: document.getElementById('btnExportJson'),
     btnImportJson: document.getElementById('btnImportJson'),
     restoreFileInput: document.getElementById('restoreFileInput'),
@@ -61,7 +60,8 @@ const elements = {
     formPayDay: document.getElementById('formPayDay'),
     formDeposit: document.getElementById('formDeposit'),
     formRoomType: document.getElementById('formRoomType'),
-    formContractPeriod: document.getElementById('formContractPeriod'),
+    formContractStart: document.getElementById('formContractStart'),
+    formContractEnd: document.getElementById('formContractEnd'),
     formMemo: document.getElementById('formMemo'),
     // 수납 모달
     payModal: document.getElementById('payModal'),
@@ -409,7 +409,13 @@ function openRoomModal(roomId = null) {
         elements.formPayDay.value = room.payDay || '';
         elements.formDeposit.value = room.deposit || '';
         elements.formRoomType.value = room.roomType || '원룸';
-        elements.formContractPeriod.value = room.contractPeriod || '';
+        const contractDates = (room.contractPeriod || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s*~\s*(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        elements.formContractStart.value = contractDates
+            ? `${contractDates[1]}-${contractDates[2].padStart(2, '0')}-${contractDates[3].padStart(2, '0')}`
+            : '';
+        elements.formContractEnd.value = contractDates
+            ? `${contractDates[4]}-${contractDates[5].padStart(2, '0')}-${contractDates[6].padStart(2, '0')}`
+            : '';
         elements.formMemo.value = room.memo || '';
     } else {
         elements.roomModalTitle.textContent = '새 호실 등록';
@@ -438,7 +444,9 @@ elements.roomForm.addEventListener('submit', (e) => {
         payDay: elements.formPayDay.value.trim(),
         deposit: Number(elements.formDeposit.value) || 0,
         roomType: elements.formRoomType.value,
-        contractPeriod: elements.formContractPeriod.value.trim(),
+        contractPeriod: elements.formContractStart.value && elements.formContractEnd.value
+            ? `${elements.formContractStart.value} ~ ${elements.formContractEnd.value}`
+            : '',
         memo: elements.formMemo.value.trim()
     };
 
@@ -593,8 +601,6 @@ window.addEventListener('click', (e) => {
         e.target.classList.remove('active');
     }
 });
-
-elements.btnAddRoom.addEventListener('click', () => openRoomModal());
 
 // ==========================================
 // 입금 달 수 필터 관리

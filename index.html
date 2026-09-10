@@ -22,9 +22,6 @@
                 <button type="button" class="btn btn-toggle-detail" id="btnToggleDetail" title="상세 정보(연락처, 계약기간, 비고, 관리) 보이기/숨기기">
                     <span id="detailIcon">📋</span> <span id="detailLabel">상세 정보 보기</span>
                 </button>
-                <button type="button" class="btn btn-primary" id="btnAddRoom">
-                    ➕ 호실 추가
-                </button>
                 <button type="button" class="btn" id="btnExportJson" title="전체 데이터를 JSON 파일로 다운로드">
                     💾 데이터 백업 (JSON)
                 </button>
@@ -198,8 +195,12 @@
                             </select>
                         </div>
                         <div class="form-group full-width">
-                            <label for="formContractPeriod">계약기간</label>
-                            <input type="text" id="formContractPeriod" placeholder="예: 2024-10-26 ~ 2026-10-25">
+                            <label>계약기간</label>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="date" id="formContractStart" aria-label="계약 시작일" style="flex: 1;">
+                                <span>~</span>
+                                <input type="date" id="formContractEnd" aria-label="계약 종료일" style="flex: 1;">
+                            </div>
                         </div>
                         <div class="form-group full-width">
                             <label for="formMemo">비고 / 수리 내역 / 특이사항</label>
