@@ -3,13 +3,13 @@
  */
 
 const STORAGE_KEY = 'rent_manager_app_data_v2';
-const VISIBLE_MONTHS_KEY = 'rent_manager_visible_months_v2';
+const VISIBLE_MONTHS_KEY = 'rent_manager_visible_months_v3';
 
 // 상태 객체
 const state = {
     rooms: [],
     months: [],
-    visibleMonths: localStorage.getItem(VISIBLE_MONTHS_KEY) || 'all', // 기본값: 전체(15달)로 설정하여 이미지 데이터가 즉시 보이도록 함
+    visibleMonths: localStorage.getItem(VISIBLE_MONTHS_KEY) || '3',
     monthEndIndex: null, // 월 윈도우 탐색용 (null이면 최신 월까지)
     searchKeyword: '',
     lastUpdated: '',
@@ -131,7 +131,7 @@ function initData() {
 function loadSampleData() {
     state.rooms = JSON.parse(JSON.stringify(INITIAL_ROOMS));
     state.months = JSON.parse(JSON.stringify(INITIAL_MONTHS));
-    state.visibleMonths = 'all';
+    state.visibleMonths = '3';
     state.monthEndIndex = state.months.length;
     localStorage.setItem(VISIBLE_MONTHS_KEY, 'all');
     state.lastUpdated = "2025-05-08 16:39"; // 이미지 원본 기준 날짜
