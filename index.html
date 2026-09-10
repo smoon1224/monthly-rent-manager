@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>월세 수납 관리 장부</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 상단 헤더 툴바 -->
+        <header class="header-bar">
+            <div class="header-left">
+                <h1 class="app-title">
+                    🏢 월세 수납 관리
+                    <span class="badge" id="roomCountBadge">0세대</span>
+                </h1>
+                <div class="update-time" id="updateTimeDisplay">최종 업데이트: -</div>
+            </div>
+
+            <div class="header-actions">
+                <button type="button" class="btn btn-toggle-detail" id="btnToggleDetail" title="상세 정보(연락처, 계약기간, 비고, 관리) 보이기/숨기기">
+                    <span id="detailIcon">📋</span> <span id="detailLabel">상세 정보 보기</span>
+                </button>
+                <button type="button" class="btn btn-primary" id="btnAddRoom">
+                    ➕ 호실 추가
+                </button>
+                <button type="button" class="btn" id="btnExportJson" title="전체 데이터를 JSON 파일로 다운로드">
+                    💾 데이터 백업 (JSON)
+                </button>
+                <button type="button" class="btn" id="btnImportJson" title="백업 파일(JSON)을 불러와 복원">
+                    📂 복원 (불러오기)
+                </button>
+                <input type="file" id="restoreFileInput" accept=".json" style="display: none;">
+                <button type="button" class="btn" id="btnExportCsv" title="엑셀에서 열 수 있는 CSV로 다운로드">
+                    📊 엑셀 (CSV)
+                </button>
+            </div>
+        </header>
+
+        <!-- 보조 바: 검색, 입금 달 선택 및 집계 요약 -->
+        <div class="sub-bar">
+            <div class="sub-bar-left">
+                <div class="search-box">
+                    <label for="searchInput" style="font-weight: 600; font-size: 12px;">🔍 검색:</label>
+                    <input type="text" id="searchInput" class="search-input" placeholder="호수, 세입자, 메모 검색...">
+                </div>
+
+                <div class="month-filter-control">
+                    <label for="monthCountSelect" class="filter-label">📅 입금 달 표시:</label>
+                    <div class="month-btn-group">
+                        <button type="button" class="month-btn btn-month-quick active" data-months="all">전체(15달)</button>
+                        <button type="button" class="month-btn btn-month-quick" data-months="recent-paid" title="수납 데이터가 입력된 최근 3개월 (2025.02 ~ 2025.04)">최근 입금 3달</button>
+                        <button type="button" class="month-btn btn-month-quick" data-months="3">최근 3달</button>
+                        <button type="button" class="month-btn btn-month-quick" data-months="6">6달</button>
+                        <button type="button" class="month-btn btn-month-quick" data-months="12">12달</button>
+                    </div>
+                    <div class="month-nav-group" style="display: inline-flex; gap: 2px;">
+                        <button type="button" class="btn btn-sm" id="btnPrevMonth" title="이전 개월로 이동 (◀)" style="padding: 2px 6px;">◀</button>
+                        <button type="button" class="btn btn-sm" id="btnNextMonth" title="다음 개월로 이동 (▶)" style="padding: 2px 6px;">▶</button>
+                    </div>
+                    <select id="monthCountSelect" class="month-select" title="표시할 최근 입금 달 수 선택">
+                        <option value="all" selected>전체 보기 (15달)</option>
+                        <option value="recent-paid">최근 입금 3달 (2025.02 ~ 2025.04)</option>
+                        <option value="1">최근 1달 (1개월)</option>
+                        <option value="2">최근 2달 (2개월)</option>
+                        <option value="3">최근 3달 (3개월)</option>
+                        <option value="4">최근 4달 (4개월)</option>
+                        <option value="5">최근 5달 (5개월)</option>
+                        <option value="6">최근 6달 (6개월)</option>
+                        <option value="7">최근 7달 (7개월)</option>
+                        <option value="8">최근 8달 (8개월)</option>
+                        <option value="9">최근 9달 (9개월)</option>
+                        <option value="10">최근 10달 (10개월)</option>
+                        <option value="11">최근 11달 (11개월)</option>
+                        <option value="12">최근 12달 (12개월)</option>
+                        <option value="custom">직접 입력...</option>
+                    </select>
+                    <div id="customMonthBox" class="custom-month-box" style="display: none;">
+                        <input type="number" id="customMonthInput" class="custom-month-input" min="1" max="99" value="3">
+                        <span class="custom-month-unit">달</span>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnApplyCustomMonth">적용</button>
+                    </div>
+                    <span class="badge badge-period" id="monthPeriodBadge" title="현재 화면에 표시 중인 기간">-</span>
+                </div>
+            </div>
+
+            <div class="summary-badges">
+                <div class="summary-item">
+                    현재 총보증금: <strong id="topTotalDeposit">0</strong> 만원
+                </div>
+                <div class="summary-item">
+                    월 총 수납예정액: <strong id="topTotalRent">0</strong> 만원
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 테이블 영역 -->
+        <main class="table-viewport">
+            <table class="rent-table compact-view" id="rentTable">
+                <thead>
+                    <tr id="tableHeaderRow">
+                        <th class="col-sticky-1">번호</th>
+                        <th class="col-sticky-2">호수</th>
+                        <th class="col-sticky-3">세입자</th>
+                        <th class="col-rent">월세</th>
+                        <th class="col-payday">입금일</th>
+                        <th class="col-phone col-detail">연락처</th>
+                        <th class="col-deposit">보증금</th>
+                        <th class="col-period col-detail">계약기간</th>
+                        <th class="col-roomtype">룸</th>
+                        <th class="col-memo col-detail">비고</th>
+                        <th class="col-actions col-detail">관리</th>
+                        <!-- 월별 헤더 동적 생성 영역 -->
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- 호실별 데이터 동적 생성 영역 -->
+                </tbody>
+                <tfoot>
+                    <tr id="tableFooterRow">
+                        <th class="col-sticky-1 col-foot-summary" colspan="2" style="text-align: center;">합계 / 수납현황</th>
+                        <td id="footTotalRent" class="col-rent">0</td>
+                        <td class="col-payday">-</td>
+                        <td class="col-phone col-detail">-</td>
+                        <td id="footTotalDeposit" class="col-deposit">0</td>
+                        <td class="col-period col-detail">-</td>
+                        <td class="col-roomtype">-</td>
+                        <td class="col-memo col-detail">-</td>
+                        <td class="col-actions col-detail">-</td>
+                        <!-- 월별 합계 셀 동적 생성 영역 -->
+                    </tr>
+                </tfoot>
+            </table>
+        </main>
+
+        <!-- 하단 상태 바 -->
+        <footer class="bottom-summary-bar">
+            <div class="summary-left">
+                <span>등록 세대: <strong id="barRoomCount">0</strong></span>
+                <span>총 보증금: <strong id="barTotalDeposit">0</strong> 만원</span>
+                <span>총 월세: <strong id="barTotalRent">0</strong> 만원</span>
+            </div>
+            <div class="summary-right" style="font-size: 11.5px; opacity: 0.85;">
+                💡 셀을 클릭하면 즉시 납부일 입력 및 미납(X) 처리가 가능합니다.
+            </div>
+        </footer>
+    </div>
+
+    <!-- 호실 추가 / 수정 모달 -->
+    <div class="modal-overlay" id="roomModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="roomModalTitle">호실 등록</h3>
+                <button type="button" class="modal-close-btn" data-close="roomModal">&times;</button>
+            </div>
+            <form id="roomForm">
+                <input type="hidden" id="formRoomId">
+                <div class="modal-body">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="formNo">번호</label>
+                            <input type="number" id="formNo" placeholder="예: 23" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="formRoomNumber">호수</label>
+                            <input type="text" id="formRoomNumber" placeholder="예: 201" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="formTenant">세입자 성함</label>
+                            <input type="text" id="formTenant" placeholder="예: 홍길동" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="formPhone">연락처</label>
+                            <input type="text" id="formPhone" placeholder="010-0000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label for="formRent">월세 (만원)</label>
+                            <input type="number" id="formRent" placeholder="예: 35" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="formPayDay">입금일 (매월 약정일)</label>
+                            <input type="text" id="formPayDay" placeholder="예: 25일 또는 25" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="formDeposit">보증금 (만원)</label>
+                            <input type="number" id="formDeposit" placeholder="예: 300" required min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="formRoomType">룸 종류</label>
+                            <select id="formRoomType">
+                                <option value="원룸">원룸</option>
+                                <option value="투룸">투룸</option>
+                                <option value="미투">미투 (미니투룸)</option>
+                                <option value="쓰리룸">쓰리룸</option>
+                                <option value="오피스텔">오피스텔</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="formContractPeriod">계약기간</label>
+                            <input type="text" id="formContractPeriod" placeholder="예: 2024-10-26 ~ 2026-10-25">
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="formMemo">비고 / 수리 내역 / 특이사항</label>
+                            <textarea id="formMemo" placeholder="도어락 교체, 보일러 수리 등 특이사항 기록"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn" data-close="roomModal">취소</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveRoom">저장하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 납부 빠른 입력 모달 -->
+    <div class="modal-overlay" id="payModal">
+        <div class="modal-card" style="max-width: 380px;">
+            <div class="modal-header">
+                <h3 id="payModalTitle">월세 납부 관리</h3>
+                <button type="button" class="modal-close-btn" data-close="payModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="payModalInfo" style="margin-bottom: 16px; font-size: 13px; color: var(--gray-700); line-height: 1.5;"></p>
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label for="customPayDate">납부 일자 (선택한 월)</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="date" id="customPayDate" style="flex: 1;">
+                        <button type="button" class="btn btn-primary" id="btnApplyCustomPay">입력</button>
+                    </div>
+                </div>
+                <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" class="btn" id="btnQuickPayToday" style="background: var(--success-light); border-color: var(--success); color: var(--success); font-weight: 600;">
+                        📅 오늘 날짜로 완납 처리
+                    </button>
+                    <button type="button" class="btn" id="btnSetUnpaid" style="background: var(--danger-light); border-color: #fca5a5; color: var(--danger); font-weight: 600;">
+                        ❌ 미납 (X) 처리
+                    </button>
+                    <button type="button" class="btn" id="btnClearPayment" style="color: var(--gray-600);">
+                        🔄 납부 기록 취소 (미입력 상태)
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" data-close="payModal">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 컨테이너 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- 스크립트 로드 -->
+    <script src="sample-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
